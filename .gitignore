@@ -5,6 +5,8 @@
 *.log
 .DS_Store
 .idea/
+*.idea/
+*.idea
 .pytest_cache/
 .secrets.*
 .static/
