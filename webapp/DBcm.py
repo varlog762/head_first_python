@@ -10,7 +10,7 @@ class UseDataBase:
         self.cursor = self.conn.cursor()
         return self.cursor
 
-    def __exit__(self) -> None:
+    def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.commit()
         self.cursor.close()
         self.conn.close()
