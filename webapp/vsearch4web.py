@@ -1,14 +1,17 @@
-from flask import Flask, render_template, request, escape
-from utils.vsearch import search4letters
+from flask import Flask, render_template, request, session
+from webapp.utils.vsearch import search4letters
 from DBcm import UseDataBase
+from utils.checker import check_logged_in
 
 app = Flask(__name__)
+app.secret_key = 'UYGswyuGU*75^'
 
 """Flask.config - встроенный в Flask словарь для конфигурирования веб-приложения."""
 app.config['dbconfig'] = {'host': '127.0.0.1',
-            'user': 'vsearch',
-            'password': 'vsearchpasswd',
-            'database': 'vsearchlogDB', }
+                          'user': 'vsearch',
+                          'password': 'vsearchpasswd',
+                          'database': 'vsearchlogDB', }
+
 
 def log_request(req: "flask_requesrt", res: str) -> None:
     """Журналирует веб-запрос и возвращаемые результаты."""
@@ -29,9 +32,15 @@ def do_search() -> 'html':
     phrase = request.form['phrase']
     letters = request.form['letters']
     results = str(search4letters(phrase, letters))
-    log_request(request, results)
-    return render_template('results.html', the_title=title, the_phrase=phrase, the_letters=letters,
-                           the_results=results)
+    try:
+        log_request(request, results)
+    except Exception as err:
+        print(f"***** Что-то пошло не так: {err}")
+    return render_template('results.html',
+                           the_title=title,
+                           the_phrase=phrase,
+                           the_letters=letters,
+                           the_results=results,)
 
 
 @app.route('/')
@@ -41,6 +50,7 @@ def entry_page() -> 'html':
 
 
 @app.route('/viewlog')
+@check_logged_in
 def view_the_log() -> 'html':
     with UseDataBase(app.config['dbconfig']) as cursor:
         _SQL = '''select phrase, letters, ip, browser_string, results from log'''
@@ -51,7 +61,19 @@ def view_the_log() -> 'html':
     return render_template('viewlog.html',
                            the_title='View log',
                            the_row_titles=titles,
-                           the_data=contents, )
+                           the_data=contents,)
+
+
+@app.route('/login')
+def do_login() -> str:
+    session['logged_in'] = True
+    return 'You are now logged in!'
+
+
+@app.route('/logout')
+def do_logout() -> str:
+    session.pop('logged_in')
+    return 'You are now logged out'
 
 
 if __name__ == '__main__':
