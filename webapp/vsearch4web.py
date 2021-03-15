@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, session
 from webapp.utils.vsearch import search4letters
-from DBcm import UseDataBase
+from DBcm import UseDataBase, ConnectionError
 from utils.checker import check_logged_in
 
 app = Flask(__name__)
@@ -52,16 +52,21 @@ def entry_page() -> 'html':
 @app.route('/viewlog')
 @check_logged_in
 def view_the_log() -> 'html':
-    with UseDataBase(app.config['dbconfig']) as cursor:
-        _SQL = '''select phrase, letters, ip, browser_string, results from log'''
-        cursor.execute(_SQL)
-        contents = cursor.fetchall()
-
-    titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results',)
-    return render_template('viewlog.html',
-                           the_title='View log',
-                           the_row_titles=titles,
-                           the_data=contents,)
+    try:
+        with UseDataBase(app.config['dbconfig']) as cursor:
+            _SQL = '''select phrase, letters, ip, browser_string, results from log'''
+            cursor.execute(_SQL)
+            contents = cursor.fetchall()
+        titles = ('Phrase', 'Letters', 'Remote_addr', 'User_agent', 'Results',)
+        return render_template('viewlog.html',
+                               the_title='View log',
+                               the_row_titles=titles,
+                               the_data=contents,)
+    except ConnectionError as err:
+        print(f'Is your database switched on? Error: {err}')
+    except Exception as err:
+        print(f'Something went wrong: {err}')
+    return 'Error'
 
 
 @app.route('/login')
